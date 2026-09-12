@@ -1,10 +1,8 @@
 package br.edu.infnet.ecommerce.pedido.domain;
 
-import br.edu.infnet.ecommerce.shared.event.PedidoPagoEvent;
 import br.edu.infnet.ecommerce.usuario.domain.Usuario;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -19,6 +17,7 @@ public class Pedido {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // O pedido conhece diretamente a entidade pertencente ao contexto de usuário.
     @ManyToOne(optional = false)
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
@@ -49,15 +48,6 @@ public class Pedido {
     public void adicionarItem(ItemPedido item) {
         itens.add(item);
         item.setPedido(this);
-    }
-
-    @Transient
-    private ApplicationEventPublisher eventPublisher;
-
-    public void confirmarPagamento() {
-        this.status = "PAGO";
-        PedidoPagoEvent evento = new PedidoPagoEvent(this.id, this.usuario.getId(), this.valorTotal);
-        eventPublisher.publishEvent(evento);
     }
 
     public Long getId() {

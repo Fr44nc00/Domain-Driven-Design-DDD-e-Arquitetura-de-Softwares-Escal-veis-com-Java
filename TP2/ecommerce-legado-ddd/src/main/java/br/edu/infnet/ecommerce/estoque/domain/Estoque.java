@@ -11,6 +11,7 @@ public class Estoque {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Acoplamento intencional entre os contextos de Estoque e Produto.
     @OneToOne(optional = false)
     @JoinColumn(name = "produto_id", nullable = false, unique = true)
     private Produto produto;

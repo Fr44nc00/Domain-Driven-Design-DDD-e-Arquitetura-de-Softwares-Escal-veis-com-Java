@@ -1,16 +1,11 @@
 package br.edu.infnet.ecommerce.shared.event;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public abstract class DomainEvent {
+    private final Instant occurredOn = Instant.now();
 
-    private final LocalDateTime occurredOn;
-
-    protected DomainEvent() {
-        this.occurredOn = LocalDateTime.now();
-    }
-
-    public LocalDateTime getOccurredOn() {
+    public Instant occurredOn() {
         return occurredOn;
     }
 }

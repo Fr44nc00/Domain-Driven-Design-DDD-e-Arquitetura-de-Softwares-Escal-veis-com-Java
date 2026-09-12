@@ -27,6 +27,7 @@ public class UsuarioController {
         return usuarioService.buscar(id);
     }
 
+    // Entidade JPA usada diretamente como contrato HTTP.
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Usuario criar(@RequestBody Usuario usuario) {

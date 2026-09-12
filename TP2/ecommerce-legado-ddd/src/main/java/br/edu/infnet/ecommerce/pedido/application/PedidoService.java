@@ -13,6 +13,7 @@ import br.edu.infnet.ecommerce.pedido.infrastructure.PedidoRepository;
 import br.edu.infnet.ecommerce.produto.domain.Produto;
 import br.edu.infnet.ecommerce.produto.infrastructure.ProdutoRepository;
 import br.edu.infnet.ecommerce.pagamento.application.PagamentoService;
+import br.edu.infnet.ecommerce.shared.event.DomainEventPublisher;
 import br.edu.infnet.ecommerce.shared.exception.EstoqueInsuficienteException;
 import br.edu.infnet.ecommerce.shared.exception.PagamentoRecusadoException;
 import br.edu.infnet.ecommerce.shared.exception.RecursoNaoEncontradoException;
@@ -20,6 +21,8 @@ import br.edu.infnet.ecommerce.pedido.api.CriarPedidoRequest;
 import br.edu.infnet.ecommerce.pedido.api.ItemPedidoRequest;
 import br.edu.infnet.ecommerce.usuario.domain.Usuario;
 import br.edu.infnet.ecommerce.usuario.infrastructure.UsuarioRepository;
+import br.edu.infnet.ecommerce.shared.event.DomainEventPublisher;
+import br.edu.infnet.ecommerce.shared.event.PedidoPagoEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,24 +32,34 @@ import java.util.List;
 @Service
 public class PedidoService {
 
+    /*
+     * Classe central da atividade.
+     *
+     * Ela acessa diretamente repositórios de Usuário, Produto, Estoque,
+     * Pedido e Pagamento, além de chamar PagamentoService.
+     * Essa mistura é proposital.
+     */
     private final UsuarioRepository usuarioRepository;
     private final ProdutoRepository produtoRepository;
     private final EstoqueRepository estoqueRepository;
     private final PedidoRepository pedidoRepository;
     private final PagamentoService pagamentoService;
+    private final DomainEventPublisher publisher;
 
     public PedidoService(
             UsuarioRepository usuarioRepository,
             ProdutoRepository produtoRepository,
             EstoqueRepository estoqueRepository,
             PedidoRepository pedidoRepository,
-            PagamentoService pagamentoService
+            PagamentoService pagamentoService,
+            DomainEventPublisher publisher
     ) {
         this.usuarioRepository = usuarioRepository;
         this.produtoRepository = produtoRepository;
         this.estoqueRepository = estoqueRepository;
         this.pedidoRepository = pedidoRepository;
         this.pagamentoService = pagamentoService;
+        this.publisher = publisher;
     }
 
     public List<Pedido> listar() {
@@ -60,6 +73,10 @@ public class PedidoService {
                 ));
     }
 
+    /*
+     * Uma única transação envolve usuário, produto, estoque,
+     * pedido e pagamento.
+     */
     @Transactional
     public Pedido criar(CriarPedidoRequest request) {
         Usuario usuario = usuarioRepository.findById(request.usuarioId())
@@ -97,6 +114,7 @@ public class PedidoService {
                 );
             }
 
+            // A baixa ocorre antes do pagamento.
             estoque.setQuantidade(
                     estoque.getQuantidade() - itemRequest.quantidade()
             );
@@ -148,6 +166,11 @@ public class PedidoService {
         }
 
         pedidoSalvo.setStatus("PAGO");
-        return pedidoRepository.save(pedidoSalvo);
+        Pedido pedidoFinal = pedidoRepository.save(pedidoSalvo);
+
+        PedidoPagoEvent event = new PedidoPagoEvent(pedidoFinal.getId());
+        publisher.publishPedidoPago(event);
+
+        return pedidoFinal;
     }
 }
