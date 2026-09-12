@@ -6,78 +6,58 @@
 
 ---
 
-### 1 - Explique de forma sucinta o que são microsserviços.
-
-Microsserviços são um estilo arquitetural em que uma aplicação é dividida em vários serviços pequenos, independentes e especializados, que se comunicam por APIs ou mensagens e podem ser desenvolvidos, implantados e escalados separadamente.
-
----
-
-### 2 - Cite uma vantagem da arquitetura de microsserviços.
-
-Uma vantagem dos microsserviços é a escalabilidade independente, permitindo aumentar recursos apenas dos serviços que possuem maior demanda, reduzindo custos e melhorando o desempenho.
+### 1. Explique de forma sucinta qual a razão de criar Agregados.
+Agregados organizam e encapsulam entidades e objetos de valor em torno de uma raiz. Eles garantem que as regras de negócio (invariantes) sejam respeitadas e que as operações sejam consistentes dentro de um limite bem definido. Isso evita dependências caóticas entre entidades e facilita manter a integridade dos dados.
 
 ---
 
-### 3 - Cite uma desvantagem da arquitetura de microsserviços.
-
-Uma desvantagem dos microsserviços é o aumento da complexidade operacional, pois é necessário gerenciar comunicação entre serviços, monitoramento, deploy e consistência dos dados distribuídos.
-
----
-
-### 4 - Cite uma característica dos microsserviços que os diferenciam de outras arquiteturas de software.
-
-Uma característica que diferencia os microsserviços é a autonomia dos serviços, já que cada um possui sua própria lógica de negócio, ciclo de vida e, geralmente, seu próprio banco de dados.
+### 2. O que significa “consistência transacional”?
+Significa que todas as mudanças feitas dentro de uma transação devem ser aplicadas de forma atômica: ou todas acontecem, ou nenhuma acontece. Isso assegura que o sistema não fique em um estado intermediário inválido.
 
 ---
 
-### 5 - Explique de forma sucinta o que é um monólito.
+### 3. Cite as 4 propriedades cruciais que definem transações.
+Atomicidade: tudo ou nada.
 
-Um monólito é uma aplicação em que todas as funcionalidades são desenvolvidas e implantadas em uma única unidade executável, compartilhando código e recursos da mesma aplicação.
+Consistência: garante que regras e restrições sejam respeitadas.
 
----
+Isolamento: transações não interferem umas nas outras.
 
-### 6 - Explique de forma sucinta o que significa Acoplamento do ponto de vista de Engenharia de Software.
-
-Acoplamento é o grau de dependência entre módulos ou componentes de um sistema; quanto menor o acoplamento, mais independentes e fáceis de manter são os componentes.
-
----
-
-### 7 - Explique de forma sucinta o que significa Coesão do ponto de vista de Engenharia de Software.
-
-Coesão é o grau de relacionamento entre as responsabilidades de um módulo; quanto maior a coesão, mais focado e organizado é o componente em relação ao seu propósito.
+Durabilidade: uma vez confirmada, a transação persiste mesmo após falhas.
 
 ---
 
-### 8 - Explique de forma sucinta o que é um Agregado do DDD.
-
-Um Agregado no DDD é um conjunto de objetos de domínio relacionados e tratados como uma única unidade de consistência, sendo controlados por uma Raiz de Agregado (Aggregate Root).
-
----
-
-### 9 - Cite uma vantagem de construir microsserviços usando Agregados do DDD.
-
-Uma vantagem de construir microsserviços usando Agregados do DDD é que os limites do domínio ficam mais claros, reduzindo acoplamentos e facilitando a autonomia de cada serviço.
+### 4. O que são “invariantes de negócio”?
+São regras que sempre devem ser verdadeiras dentro de um agregado. Exemplo: um pedido não pode ter valor negativo; um estoque nunca pode ter quantidade menor que zero.
 
 ---
 
-### 10 - Dê um exemplo de mapeamento de um Contexto Delimitado para um microserviço, utilizando a linguagem Java.
-
-Um exemplo de Contexto Delimitado mapeado para um microsserviço em Java é o contexto de Pagamento, implementado em um módulo próprio contendo classes como PagamentoService, Pagamento, ProcessadorCartao e PagamentoRepository.
-
----
-
-### 11 - Dê um exemplo de mapeamento de um Agregado, com Objeto de Valor, para o contexto de um microserviço, utilizando a linguagem Java.
-
-Um exemplo de Agregado com Objeto de Valor é o Agregado Pagamento, que utiliza os Value Objects Dinheiro, NumeroCartao e PagamentoId para representar conceitos do domínio com regras e validações próprias.
+### 5. Porque um agregado só deve ter acesso a outro agregado pelo ID?
+Para manter independência e baixo acoplamento. Se um agregado acessasse diretamente outro, poderia violar invariantes de negócio fora do seu limite. Usar apenas o ID garante que cada agregado seja responsável por sua própria consistência.
 
 ---
 
-### 12 - Porque o compartilhamento de banco de dados é uma estratégia de integração ruim sob o ponto de vista de microsserviços?
-
-O compartilhamento de banco de dados é uma estratégia ruim em microsserviços porque aumenta o acoplamento entre serviços, dificulta a autonomia das equipes e torna mudanças no esquema de dados mais arriscadas.
+### 8. O que é “evento de domínio”?
+É uma notificação emitida por um agregado quando algo relevante acontece no negócio. Ele descreve uma mudança de estado ou ação importante (ex.: “PedidoPagoEvent”) e permite que outros componentes reajam de forma desacoplada.
 
 ---
 
-### 13 - Explique, com suas próprias palavras, qual estratégia de migração (como o padrão Strangler Fig / Padrão Estrangulador ou Branch by Abstraction) você utilizaria para iniciar a transformação desse monólito em microsserviços de forma segura, sem precisar desligar o sistema atual.
+### 11. Qual é a diferença entre filas e tópicos e como estes elementos funcionam em conjunto?
+Na Fila (Queue), cada mensagem é consumida por um único consumidor. Já no Tópico (Topic), cada mensagem é publicada para todos os assinantes interessados. É possível publicar eventos em um tópico, e cada serviço que assina esse tópico recebe uma cópia. Se quiser que apenas um serviço processe, usa fila.
 
-Para iniciar a migração desse monólito para microsserviços, eu utilizaria o padrão Strangler Fig (Padrão Estrangulador), extraindo gradualmente funcionalidades do sistema legado para novos serviços independentes, como o contexto de Pagamento, redirecionando as requisições aos poucos até que a funcionalidade antiga pudesse ser removida sem interromper a operação do sistema.
+---
+
+### 12. Dê um exemplo de solução de arquitetura para publicação de eventos de domínio dentro do escopo do projeto Pet Friends (ideal um desenho).
+No meu projeto, o fluxo poderia ser:
+
+Pedido dispara um PedidoPagoEvent -> esse evento é publicado em um tópico (pelo Kafka ou pelo RabbitMQ) -> serviços como Estoque reagem ao evento.
+
+---
+
+### 13. Explique qual a finalidade de uma Event Store no contexto de eventos de domínio.
+Uma Event Store é um repositório especializado para armazenar eventos de domínio. Ela guarda cada evento ocorrido, permitindo auditar o histórico completo, reconstituir o estado de um agregado a partir dos eventos e facilitar integrações e análises.
+
+---
+
+### 14. O que é Event Sourcing e como ele se diferencia da persistência tradicional em bancos de dados relacionais? Explique como os eventos salvos são usados para recuperar o estado atual de um Agregado.
+A persistência tradicional salva apenas o estado atual (ex.: tabela de pedidos com status “PAGO”). Já o Event Sourcing salva todos os eventos que levaram ao estado atual (ex.: “PedidoCriado”, “ItemAdicionado”, “PedidoPago”). Para recuperar o estado de um agregado, se reaplica todos os eventos em ordem até chegar ao estado atual. Isso dá rastreabilidade e permite reconstruir qualquer ponto da história.
