@@ -1,0 +1,10 @@
+package br.edu.infnet.ecommerce.usuario.infrastructure;
+
+import br.edu.infnet.ecommerce.usuario.domain.Usuario;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
+    Optional<Usuario> findByEmail(String email);
+}
