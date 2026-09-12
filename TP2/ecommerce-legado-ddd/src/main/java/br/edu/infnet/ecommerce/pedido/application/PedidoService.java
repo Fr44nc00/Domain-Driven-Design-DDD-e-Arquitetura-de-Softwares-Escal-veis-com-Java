@@ -13,7 +13,7 @@ import br.edu.infnet.ecommerce.pedido.infrastructure.PedidoRepository;
 import br.edu.infnet.ecommerce.produto.domain.Produto;
 import br.edu.infnet.ecommerce.produto.infrastructure.ProdutoRepository;
 import br.edu.infnet.ecommerce.pagamento.application.PagamentoService;
-import br.edu.infnet.ecommerce.shared.event.DomainEventPublisher;
+import br.edu.infnet.ecommerce.shared.event.KafkaEventPublisher;
 import br.edu.infnet.ecommerce.shared.exception.EstoqueInsuficienteException;
 import br.edu.infnet.ecommerce.shared.exception.PagamentoRecusadoException;
 import br.edu.infnet.ecommerce.shared.exception.RecursoNaoEncontradoException;
@@ -21,7 +21,6 @@ import br.edu.infnet.ecommerce.pedido.api.CriarPedidoRequest;
 import br.edu.infnet.ecommerce.pedido.api.ItemPedidoRequest;
 import br.edu.infnet.ecommerce.usuario.domain.Usuario;
 import br.edu.infnet.ecommerce.usuario.infrastructure.UsuarioRepository;
-import br.edu.infnet.ecommerce.shared.event.DomainEventPublisher;
 import br.edu.infnet.ecommerce.shared.event.PedidoPagoEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,7 +43,7 @@ public class PedidoService {
     private final EstoqueRepository estoqueRepository;
     private final PedidoRepository pedidoRepository;
     private final PagamentoService pagamentoService;
-    private final DomainEventPublisher publisher;
+    private final KafkaEventPublisher publisher;
 
     public PedidoService(
             UsuarioRepository usuarioRepository,
@@ -52,7 +51,7 @@ public class PedidoService {
             EstoqueRepository estoqueRepository,
             PedidoRepository pedidoRepository,
             PagamentoService pagamentoService,
-            DomainEventPublisher publisher
+            KafkaEventPublisher publisher
     ) {
         this.usuarioRepository = usuarioRepository;
         this.produtoRepository = produtoRepository;
