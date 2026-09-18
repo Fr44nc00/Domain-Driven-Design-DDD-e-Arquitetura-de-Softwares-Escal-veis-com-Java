@@ -52,46 +52,140 @@ No padrão de mensagens , o serviço de Pedidos cria um pedido (mensagem), envia
 ---
 
 ## 6. Explique a comunicação assíncrona em uma arquitetura de microsserviços utilizando um message broker.
-
-
----
-
-## 7. O que é “evento de domínio”?
-É uma notificação emitida por um agregado quando algo relevante acontece no negócio. Ele descreve uma mudança de estado ou ação importante (ex.: “PedidoPagoEvent”) e permite que outros componentes reajam de forma desacoplada.
+O message broker atua como intermediário entre produtores e consumidores de mensagens. O produtor envia uma mensagem para o broker, o broker armazena a mensagem e o consumidor recebe ou busca a mensagem. Após o processamento, a mensagem pode ser removida ou marcada como concluída. Essa abordagem aumenta a confiabilidade da comunicação e evita dependências diretas entre os serviços.
 
 ---
 
-## 8. O que é “evento de domínio”?
-É uma notificação emitida por um agregado quando algo relevante acontece no negócio. Ele descreve uma mudança de estado ou ação importante (ex.: “PedidoPagoEvent”) e permite que outros componentes reajam de forma desacoplada.
+## 7. Apresente as vantagens e desvantagens da comunicação assíncrona em uma arquitetura de microsserviços utilizando um message broker.
+
+### Vantagens
+1. Baixo acoplamento entre serviços.
+2. Maior escalabilidade.
+3. Melhor tolerância a falhas.
+4. Possibilidade de processamento paralelo.
+5. Melhor desempenho em sistemas distribuídos.
+
+### Desvantagens
+1. Maior complexidade de implementação.
+2. Dificuldade de monitoramento e depuração.
+3. Consistência eventual dos dados.
+4. Possibilidade de mensagens duplicadas.
+5. Necessidade de infraestrutura adicional.
 
 ---
 
-## 9. O que é “evento de domínio”?
-É uma notificação emitida por um agregado quando algo relevante acontece no negócio. Ele descreve uma mudança de estado ou ação importante (ex.: “PedidoPagoEvent”) e permite que outros componentes reajam de forma desacoplada.
+## 8. Dê exemplos de, pelo menos, três message brokers de código aberto. Explique o funcionamento e as vantagens de um deles.
+
+### Exemplos
+1. RabbitMQ
+2. Apache Kafka
+3. ActiveMQ
+
+### Funcionamento do RabbitMQ
+1. Aplicações produtoras enviam mensagens.
+2. O RabbitMQ recebe e encaminha para filas.
+3. Consumidores recebem as mensagens e processam.
+
+### Vantagens
+1. Fácil configuração.
+2. Alta confiabilidade.
+3. Suporte a múltiplos protocolos.
+4. Persistência de mensagens.
+5. Balanceamento de carga entre consumidores.
 
 ---
 
-## 10. O que é “evento de domínio”?
-É uma notificação emitida por um agregado quando algo relevante acontece no negócio. Ele descreve uma mudança de estado ou ação importante (ex.: “PedidoPagoEvent”) e permite que outros componentes reajam de forma desacoplada.
+## 9. Dê um exemplo de message broker oferecido por um provedor de nuvem. Explique o seu funcionamento e suas vantagens.
+
+### Exemplo: Azure Service Bus (Microsoft Azure)
+
+#### Funcionamento
+1. Aplicações enviam mensagens para filas ou tópicos.
+2. O Azure Service Bus armazena as mensagens.
+3. Consumidores processam as mensagens quando disponíveis.
+
+#### Vantagens
+1. Serviço totalmente gerenciado.
+2. Alta disponibilidade.
+3. Escalabilidade automática.
+4. Segurança integrada.
+5. Integração nativa com outros serviços Azure.
 
 ---
 
-## 11. Qual é a diferença entre filas e tópicos e como estes elementos funcionam em conjunto?
-Na Fila (Queue), cada mensagem é consumida por um único consumidor. Já no Tópico (Topic), cada mensagem é publicada para todos os assinantes interessados. É possível publicar eventos em um tópico, e cada serviço que assina esse tópico recebe uma cópia. Se quiser que apenas um serviço processe, usa fila.
+## 10. Quais os desafios e as soluções para o processamento concorrente de mensagens para garantir a ordenação das mensagens?
+
+### Desafios
+1. Mensagens podem chegar fora de ordem.
+2. Processamento paralelo pode alterar a sequência original.
+3. Falhas podem causar reenvios em momentos diferentes.
+
+### Soluções
+1. Utilizar partições com chave de ordenação.
+2. Processar mensagens do mesmo contexto em uma única fila.
+3. Utilizar números de sequência.
+4. Aplicar mecanismos de controle de concorrência.
+5. Garantir processamento sequencial quando necessário.
 
 ---
 
-## 12. Dê um exemplo de solução de arquitetura para publicação de eventos de domínio dentro do escopo do projeto Pet Friends (ideal um desenho).
-No meu projeto, o fluxo poderia ser:
+## 11. Quais os desafios e as soluções para o processamento concorrente de mensagens para o tratamento de mensagens duplicadas?
 
-Pedido dispara um PedidoPagoEvent -> esse evento é publicado em um tópico (pelo Kafka ou pelo RabbitMQ) -> serviços como Estoque reagem ao evento.
+### Desafios
+1. Falhas de rede podem gerar reenvio.
+2. O consumidor pode processar a mesma mensagem mais de uma vez.
+3. Retransmissões podem provocar inconsistências.
+
+### Soluções
+1. Implementar consumidores idempotentes.
+2. Utilizar identificadores únicos de mensagens.
+3. Registrar mensagens já processadas.
+4. Aplicar mecanismos de deduplicação no broker.
 
 ---
 
-## 13. Explique qual a finalidade de uma Event Store no contexto de eventos de domínio.
-Uma Event Store é um repositório especializado para armazenar eventos de domínio. Ela guarda cada evento ocorrido, permitindo auditar o histórico completo, reconstituir o estado de um agregado a partir dos eventos e facilitar integrações e análises.
+## 12. Quais os desafios e as soluções para o tratamento de transações de mensagens em bancos de dados em uma arquitetura de microsserviços?
+
+### Desafios
+1. Não existe uma transação única entre vários microsserviços.
+2. Falhas podem deixar dados inconsistentes.
+3. Serviços possuem bancos independentes.
+
+Soluções
+1. Padrão Saga.
+2. Outbox Pattern.
+3. Event Sourcing.
+4. Consistência eventual.
+5. Operações compensatórias para desfazer ações quando necessário.
 
 ---
 
-## 14. O que é Event Sourcing e como ele se diferencia da persistência tradicional em bancos de dados relacionais? Explique como os eventos salvos são usados para recuperar o estado atual de um Agregado.
-A persistência tradicional salva apenas o estado atual (ex.: tabela de pedidos com status “PAGO”). Já o Event Sourcing salva todos os eventos que levaram ao estado atual (ex.: “PedidoCriado”, “ItemAdicionado”, “PedidoPago”). Para recuperar o estado de um agregado, se reaplica todos os eventos em ordem até chegar ao estado atual. Isso dá rastreabilidade e permite reconstruir qualquer ponto da história.
+## 13. Quais os problemas relacionados ao uso de banco de dados em uma arquitetura de microsserviços assíncronos?
+
+Consistência eventual dos dados, dificuldade de realizar transações distribuídas, duplicação de dados entre serviços, sincronização complexa de informações, maior dificuldade para consultas que envolvem vários serviços e necessidade de tratamento de falhas e reprocessamentos.
+
+---
+
+## 14. Explique o gerenciamento de transações utilizando o padrão Sagas para manter a consistência dos dados em uma arquitetura de microsserviços assíncronos.
+
+O padrão Saga é utilizado para coordenar transações distribuídas entre microsserviços sem utilizar uma única transação global.
+
+### Funcionamento
+1. Um serviço executa uma operação local.
+2. Publica um evento.
+3. O próximo serviço executa sua operação.
+4. O processo continua até a conclusão da transação.
+5. Tratamento de falhas
+
+Se algum serviço falhar, são executadas transações compensatórias e cada serviço desfaz sua operação anterior.
+
+### Exemplo com compra em e-commerce:
+
+1. Criar pedido.
+2. Reservar estoque.
+3. Processar pagamento.
+4. Confirmar entrega.
+
+Se o pagamento falhar, o estoque é liberado e o pedido é cancelado.
+
+Assim, o padrão Saga mantém a consistência dos dados em sistemas distribuídos sem depender de transações tradicionais entre múltiplos bancos de dados.
