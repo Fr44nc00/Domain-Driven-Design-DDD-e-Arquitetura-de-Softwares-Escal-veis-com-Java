@@ -157,3 +157,131 @@ curl -X PATCH "http://localhost:8080/api/contratos/{id}/cancelar?motivo=Cliente 
 ```
 
 ---
+
+## Exercício 3 – Especificação das mensagens
+
+### Objetivo
+Documentar os eventos publicados pelo `contrato-service` e consumidos pelos serviços auxiliares.  
+A especificação representa o contrato de comunicação entre os microsserviços.
+
+---
+
+### Eventos
+
+#### 1. ContratoCriado
+- **Nome do evento:** `ContratoCriado`  
+- **Tópico Kafka:** `contratos-events`  
+- **Serviço produtor:** `contrato-service`  
+- **Serviços consumidores:** `notificacao-service`, `auditoria-service`  
+- **Estrutura do payload:**
+  ```json
+  {
+    "eventId": "uuid",
+    "eventType": "ContratoCriado",
+    "contratoId": "uuid",
+    "correlationId": "string",
+    "criadoEm": "2026-10-12T16:55:31Z",
+    "clienteId": "uuid",
+    "freelancerId": "uuid",
+    "titulo": "string",
+    "valor": 5000.00,
+    "status": "ATIVO"
+  }
+  ```
+- **Campos obrigatórios:** `eventId`, `eventType`, `contratoId`, `clienteId`, `freelancerId`, `titulo`, `valor`, `status`, `criadoEm`  
+- **Chave de publicação:** `contratoId`  
+- **Exemplo:**
+  ```json
+  {
+    "eventId": "d2a40640-402a-4a0a-96c1-bd604c0cf8f0",
+    "eventType": "ContratoCriado",
+    "contratoId": "53ae7760-6654-4911-a973-8cd0617f8041",
+    "correlationId": "teste-123",
+    "criadoEm": "2026-10-12T16:55:31Z",
+    "clienteId": "11111111-1111-1111-1111-111111111111",
+    "freelancerId": "22222222-2222-2222-2222-222222222222",
+    "titulo": "Desenvolvimento de API",
+    "valor": 5000.00,
+    "status": "ATIVO"
+  }
+  ```
+
+---
+
+#### 2. EntregaRegistrada
+- **Nome do evento:** `EntregaRegistrada`  
+- **Tópico Kafka:** `contratos-events`  
+- **Serviço produtor:** `contrato-service`  
+- **Serviços consumidores:** `notificacao-service`, `auditoria-service`  
+- **Estrutura do payload:** igual ao `ContratoCriado`, mas com `eventType = "EntregaRegistrada"` e `status = "ENTREGA_REGISTRADA"`  
+- **Campos obrigatórios:** mesmos do `ContratoCriado`  
+- **Chave de publicação:** `contratoId`  
+- **Exemplo:**
+  ```json
+  {
+    "eventId": "uuid",
+    "eventType": "EntregaRegistrada",
+    "contratoId": "uuid",
+    "correlationId": "teste-456",
+    "criadoEm": "2026-10-12T17:00:00Z",
+    "clienteId": "uuid",
+    "freelancerId": "uuid",
+    "titulo": "string",
+    "valor": 3500.00,
+    "status": "ENTREGA_REGISTRADA"
+  }
+  ```
+
+---
+
+#### 3. ContratoConcluido
+- **Nome do evento:** `ContratoConcluido`  
+- **Tópico Kafka:** `contratos-events`  
+- **Serviço produtor:** `contrato-service`  
+- **Serviços consumidores:** `notificacao-service`, `reputacao-service`, `auditoria-service`  
+- **Estrutura do payload:** igual ao `ContratoCriado`, mas com `eventType = "ContratoConcluido"` e `status = "CONCLUIDO"`  
+- **Campos obrigatórios:** mesmos do `ContratoCriado`  
+- **Chave de publicação:** `contratoId`  
+- **Exemplo:**
+  ```json
+  {
+    "eventId": "uuid",
+    "eventType": "ContratoConcluido",
+    "contratoId": "uuid",
+    "correlationId": "teste-789",
+    "criadoEm": "2026-10-12T17:10:00Z",
+    "clienteId": "uuid",
+    "freelancerId": "uuid",
+    "titulo": "string",
+    "valor": 4500.00,
+    "status": "CONCLUIDO"
+  }
+  ```
+
+---
+
+#### 4. ContratoCancelado
+- **Nome do evento:** `ContratoCancelado`  
+- **Tópico Kafka:** `contratos-events`  
+- **Serviço produtor:** `contrato-service`  
+- **Serviços consumidores:** `notificacao-service`, `auditoria-service`  
+- **Estrutura do payload:** igual ao `ContratoCriado`, mas com `eventType = "ContratoCancelado"` e `status = "CANCELADO"`  
+- **Campos obrigatórios:** mesmos do `ContratoCriado`  
+- **Chave de publicação:** `contratoId`  
+- **Exemplo:**
+  ```json
+  {
+    "eventId": "uuid",
+    "eventType": "ContratoCancelado",
+    "contratoId": "uuid",
+    "correlationId": "teste-999",
+    "criadoEm": "2026-10-12T17:20:00Z",
+    "clienteId": "uuid",
+    "freelancerId": "uuid",
+    "titulo": "string",
+    "valor": 2000.00,
+    "status": "CANCELADO"
+  }
+  ```
+
+---
