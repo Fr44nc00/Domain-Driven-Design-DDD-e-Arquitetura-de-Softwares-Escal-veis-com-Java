@@ -1,200 +1,159 @@
 # Domain-Driven-Design-DDD-e-Arquitetura-de-Softwares-Escal-veis-com-Java  --- AT
 
----
+Projeto de referência para um marketplace de contratação de freelancers construído com arquitetura de microsserviços em Java e Spring.
 
-# 1. Comunicação baseada em eventos – Contrato Service
-
-## Tópicos Kafka definidos
-
-contrato-criado
-
-contrato-concluido
-
-contrato-cancelado
-
-Cada tópico corresponde a um evento relevante no ciclo de vida de um contrato.
+A aplicação representa um cenário em que clientes contratam freelancers para a execução de trabalhos. O núcleo do sistema é o gerenciamento dos contratos firmados entre as partes. A partir desse domínio, outros serviços mantêm informações relacionadas a notificações, reputação e auditoria.
 
 ---
 
-## Produtor
+## Exercício 1 – Comunicação baseada em eventos
 
-Serviço: contrato-service
+### Objetivo
+O `contrato-service` deve publicar eventos relacionados às operações relevantes do domínio.  
+A estrutura das mensagens deve permitir identificar:
+- o evento
+- o tipo do evento
+- o contrato relacionado
+- a data e hora em que ocorreu
+- os dados necessários para processamento pelos consumidores
+- informações de correlação para rastreamento
 
-Responsabilidade: publicar eventos de domínio sempre que um contrato é criado, concluído ou cancelado.
+### Visão geral
+O sistema é composto por seis aplicações Spring Boot:
 
-Chave de particionamento: contratoId  
-→ garante que todos os eventos relacionados ao mesmo contrato sejam roteados para a mesma partição.
+- **eureka-server**: registro e descoberta dos serviços  
+- **api-gateway**: ponto de entrada HTTP da aplicação  
+- **contrato-service**: gerenciamento dos contratos  
+- **notificacao-service**: armazenamento das notificações  
+- **reputacao-service**: manutenção da reputação dos freelancers  
+- **auditoria-service**: registro de eventos relevantes  
 
----
-
-## Consumidores
-
-### notificacao-service
-
-Consome contrato-criado e contrato-concluido
-
-Responsável por enviar notificações a clientes e freelancers.
-
-### reputacao-service
-
-Consome contrato-concluido
-
-Atualiza a reputação do freelancer com base em contratos finalizados.
-
-### auditoria-service
-
-Consome todos os eventos (contrato-criado, contrato-concluido, contrato-cancelado)
-
-Mantém trilha de auditoria para rastreabilidade e compliance.
+Infraestrutura: **PostgreSQL** e **Apache Kafka** via Docker Compose.
 
 ---
 
-## Estrutura da mensagem
+### Domínio
+O domínio principal está no `contrato-service`.
 
-### Formato JSON serializado pelo KafkaJsonSerializer:
+Um contrato possui:
+- identificador
+- cliente
+- freelancer
+- título
+- valor
+- status
+- data de criação
 
-```json
-{
-  "eventId": "UUID",
-  "occurredAt": "2026-10-10T19:33:00Z",
-  "eventType": "CONTRATO_CRIADO",
-  "contratoId": "UUID",
-  "data": {
-    "clienteId": "UUID",
-    "freelancerId": "UUID",
-    "titulo": "string",
-    "valor": 1000.00
-  },
-  "correlationId": "UUID"
-}
+#### Estados
+- ATIVO  
+- ENTREGA_REGISTRADA  
+- CONCLUIDO  
+- CANCELADO  
+
+Fluxo:
+```
+ATIVO → ENTREGA_REGISTRADA → CONCLUIDO
+ATIVO → CANCELADO
 ```
 
-### Campos obrigatórios
-
-eventId → identificador único do evento
-
-occurredAt → data/hora da ocorrência
-
-eventType → tipo do evento (CONTRATO_CRIADO, CONTRATO_CONCLUIDO, CONTRATO_CANCELADO)
-
-contratoId → contrato relacionado
-
-data → informações adicionais necessárias para processamento
-
-correlationId → rastreamento da operação
-
 ---
 
-## Estratégia de publicação
+### Eventos de domínio
+Eventos implementados:
+- `ContratoCriadoEvent`
+- `EntregaRegistradaEvent`
+- `ContratoConcluidoEvent`
+- `ContratoCanceladoEvent`
 
-Eventos são criados no aggregate Contrato.
-
-O ContratoApplicationService coleta os eventos via contrato.pullDomainEvents() e publica no Kafka.
-
-Publicação é feita de forma transacional: primeiro persiste no banco, depois envia ao Kafka.
-
----
-
-# 2. Integração dos serviços – Consumidores Kafka
-
-## notificacao-service
-
-Tópicos consumidos: contrato-criado, contrato-concluido
-Responsabilidade: registrar notificações para clientes e freelancers.
-
-### Fluxo:
-
-O NotificacaoConsumer recebe o evento via @KafkaListener.
-
-O evento é transformado em ContratoEvent (DTO local).
-
-O NotificacaoService persiste a notificação no banco.
-
-### Logs registrados:
-
-Evento recebido
-
-Contrato associado
-
-Destinatário
-
-Resultado do processamento
-
----
-
-## reputacao-service
-
-Tópico consumido: contrato-concluido
-Responsabilidade: atualizar reputação do freelancer com base em contratos finalizados.
-
-### Fluxo:
-
-O ReputacaoConsumer recebe o evento via @KafkaListener.
-
-O evento é transformado em ContratoEvent.
-
-O ReputacaoService atualiza ou cria o registro de reputação do freelancer.
-
-### Logs registrados:
-
-Evento recebido
-
-Contrato associado
-
-Freelancer
-
-Resultado da atualização
-
----
-
-## auditoria-service
-
-Tópicos consumidos: contrato-criado, contrato-concluido, contrato-cancelado
-Responsabilidade: manter trilha de auditoria completa para rastreabilidade e compliance.
-
-### Fluxo:
-
-O AuditoriaConsumer recebe o evento via @KafkaListener.
-
-O evento é transformado em ContratoEvent.
-
-O AuditoriaService persiste os dados no banco (EventoAuditoria).
-
-### Logs registrados:
-
-Identificador do evento
-
-Tipo do evento
-
-Contrato relacionado
-
-Data e hora
-
-CorrelationId
-
-Conteúdo relevante da mensagem
-
----
-
-## Estrutura comum dos eventos (ContratoEvent)
-
-Cada serviço define localmente um DTO ContratoEvent que reflete o JSON publicado pelo contrato-service:
-
+#### Estrutura da mensagem
 ```json
 {
-  "eventId": "UUID",
-  "occurredAt": "2026-10-10T19:33:00Z",
-  "eventType": "CONTRATO_CONCLUIDO",
-  "contratoId": "UUID",
-  "data": {
-    "clienteId": "UUID",
-    "freelancerId": "UUID",
-    "titulo": "string",
-    "valor": 1000.00
-  },
-  "correlationId": "UUID"
+  "eventId": "uuid",
+  "eventType": "ContratoCriado",
+  "contratoId": "uuid",
+  "correlationId": "teste-123",
+  "timestamp": "2026-10-12T01:14:59.838990Z",
+  "clienteId": "11111111-1111-1111-1111-111111111111",
+  "freelancerId": "22222222-2222-2222-2222-222222222222",
+  "titulo": "Desenvolvimento de API",
+  "valor": 5000.00,
+  "status": "ATIVO"
 }
 ```
 
 ---
 
+### Kafka
+- **Tópico:** `contratos-events`  
+- **Produtor:** `KafkaContratoProducer`  
+- **Consumidores esperados:** auditoria-service, notificacao-service, reputacao-service  
+- **Chave de particionamento:** `contratoId`  
+- **Formato:** JSON via Jackson  
+
+---
+
+### Recursos HTTP
+- `POST /api/contratos` → criar contrato  
+- `GET /api/contratos` → listar contratos  
+- `GET /api/contratos/{id}` → buscar contrato  
+- `PATCH /api/contratos/{id}/entrega` → registrar entrega  
+- `PATCH /api/contratos/{id}/concluir` → concluir contrato  
+- `PATCH /api/contratos/{id}/cancelar?motivo=...` → cancelar contrato  
+
+---
+
+### Infraestrutura local
+Definida em `infra/docker-compose.yml`.
+
+Para iniciar:
+```bash
+cd infra
+docker compose up -d
+```
+
+Portas principais:
+- API Gateway → 8080  
+- contrato-service → 8081  
+- notificacao-service → 8082  
+- reputacao-service → 8083  
+- auditoria-service → 8084  
+- Eureka Server → 8761  
+- Kafka → 9092  
+- Kafka UI → 8090  
+- PostgreSQL → 5432  
+
+---
+
+### Teste básico
+Criar contrato:
+```bash
+curl -i -X POST http://localhost:8080/api/contratos \
+  -H 'Content-Type: application/json' \
+  -H 'X-Correlation-Id: teste-contrato-001' \
+  -d '{
+    "clienteId": "11111111-1111-1111-1111-111111111111",
+    "freelancerId": "22222222-2222-2222-2222-222222222222",
+    "titulo": "Construção de API de pagamentos",
+    "valor": 3500.00
+  }'
+```
+
+Registrar entrega:
+```bash
+curl -X PATCH http://localhost:8080/api/contratos/{id}/entrega \
+  -H 'X-Correlation-Id: teste-contrato-001'
+```
+
+Concluir contrato:
+```bash
+curl -X PATCH http://localhost:8080/api/contratos/{id}/concluir \
+  -H 'X-Correlation-Id: teste-contrato-001'
+```
+
+Cancelar contrato:
+```bash
+curl -X PATCH "http://localhost:8080/api/contratos/{id}/cancelar?motivo=Cliente desistiu" \
+  -H 'X-Correlation-Id: teste-contrato-001'
+```
+
+---
