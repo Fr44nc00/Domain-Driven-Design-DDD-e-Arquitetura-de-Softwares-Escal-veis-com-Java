@@ -338,3 +338,141 @@ Isso retorna todos os logs relacionados ao contrato, vindos de diferentes servi�
 
 ---
 
+## Exercício 12 – Documentação da solução
+
+### Visão geral da arquitetura
+A solução foi construída com arquitetura de microsserviços em **Java + Spring Boot**, utilizando comunicação assíncrona via **Apache Kafka** e infraestrutura containerizada com **Docker Compose**.  
+Os principais componentes são:
+- **API Gateway**: ponto único de entrada HTTP, responsável pelo roteamento.  
+- **Eureka Server**: registro e descoberta de serviços.  
+- **Microsserviços**: contrato, notificação, reputação e auditoria.  
+- **Infraestrutura**: PostgreSQL para persistência, Kafka para mensageria, Zipkin para tracing distribuído, Loki + Promtail + Grafana para centralização de logs.
+
+---
+
+### Serviços participantes
+- **contrato-service**: núcleo do domínio, responsável pela criação e gestão de contratos.  
+- **notificacao-service**: gera e armazena notificações relacionadas a eventos de contrato.  
+- **reputacao-service**: atualiza a reputação dos freelancers com base em contratos concluídos.  
+- **auditoria-service**: registra eventos relevantes para rastreabilidade.  
+- **api-gateway**: expõe endpoints REST e encaminha requisições.  
+- **eureka-server**: provê service discovery.
+
+---
+
+### Tópicos Kafka utilizados
+- **contratos-events**: tópico principal para publicação de eventos de contrato.  
+  - Produtor: contrato-service  
+  - Consumidores: notificacao-service, reputacao-service, auditoria-service  
+
+---
+
+### Eventos existentes
+- `ContratoCriado`  
+- `EntregaRegistrada`  
+- `ContratoConcluido`  
+- `ContratoCancelado`  
+
+---
+
+### Formato das mensagens
+Mensagens publicadas em JSON, com os seguintes campos:
+- `eventId` (UUID)  
+- `eventType` (string)  
+- `contratoId` (UUID)  
+- `correlationId` (string)  
+- `criadoEm` (timestamp)  
+- `clienteId` (UUID)  
+- `freelancerId` (UUID)  
+- `titulo` (string)  
+- `valor` (decimal)  
+- `status` (string)
+
+---
+
+### Estratégia de particionamento
+- Particionamento por `contratoId` para garantir a **ordem dos eventos de um mesmo contrato**.
+
+---
+
+### Estratégia de idempotência
+- Cada consumidor verifica se o `eventId` já foi processado antes de persistir, evitando duplicidade.
+
+---
+
+### Publicação transacional
+- O contrato-service utiliza **Kafka Producer idempotente e transacional**, garantindo que a persistência no banco e a publicação no Kafka ocorram de forma atômica.
+
+---
+
+### Centralização de logs
+- Logs enviados via **Promtail** para **Grafana Loki**.  
+- Consultas realizadas no **Grafana Explore**, permitindo correlação por `contratoId`, `eventId` ou `correlationId`.
+
+---
+
+### Configuração utilizada para tracing
+- Configuração em `application.yml`:
+  ```yaml
+  management:
+      tracing:
+        sampling:
+          probability: 1.0
+        export:
+          zipkin:
+            endpoint: http://localhost:9411/api/v2/spans
+  ```
+
+---
+
+### Instruções para inicialização da infraestrutura
+Na pasta `infra`:
+```bash
+docker compose up -d
+```
+Principais serviços:
+- API Gateway → 8080  
+- contrato-service → 8081  
+- notificacao-service → 8082  
+- reputacao-service → 8083  
+- auditoria-service → 8084  
+- Eureka Server → 8761  
+- Kafka → 9092  
+- Kafka UI → 8090  
+- PostgreSQL → 5432  
+- Zipkin → 9411  
+- Grafana → 3000  
+
+---
+
+### Exemplos de chamadas para geração de eventos
+- Criar contrato:
+  ```bash
+  curl -X POST http://localhost:8080/api/contratos \
+    -H 'Content-Type: application/json' \
+    -H 'X-Correlation-Id: teste-contrato-001' \
+    -d '{
+      "clienteId": "11111111-1111-1111-1111-111111111111",
+      "freelancerId": "22222222-2222-2222-2222-222222222222",
+      "titulo": "Construção de API de pagamentos",
+      "valor": 3500.00
+    }'
+  ```
+
+- Registrar entrega:
+  ```bash
+  curl -X PATCH http://localhost:8080/api/contratos/{id}/entrega \
+    -H 'X-Correlation-Id: teste-contrato-001'
+  ```
+
+- Concluir contrato:
+  ```bash
+  curl -X PATCH http://localhost:8080/api/contratos/{id}/concluir \
+    -H 'X-Correlation-Id: teste-contrato-001'
+  ```
+
+- Cancelar contrato:
+  ```bash
+  curl -X PATCH "http://localhost:8080/api/contratos/{id}/cancelar?motivo=Cliente desistiu" \
+    -H 'X-Correlation-Id: teste-contrato-001'
+  ```
