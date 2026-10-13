@@ -476,3 +476,27 @@ Principais serviços:
   curl -X PATCH "http://localhost:8080/api/contratos/{id}/cancelar?motivo=Cliente desistiu" \
     -H 'X-Correlation-Id: teste-contrato-001'
   ```
+
+  ---
+
+  ## Evidências
+
+### Requisição recebida pelo API Gateway
+  <img src="./Capturas/Evidencia1.png">
+
+### Alteração persistida no contrato-service
+  <img src="./Capturas/Evidencia2.png">
+
+### Evento publicado no Kafka - Manutenção da ordem dos eventos de um mesmo contrato
+  <img src="./Capturas/Evidencia37.png">
+
+### Consumo do evento pelos serviços interessados - Persistência realizada pelos consumidores - Tratamento de uma mensagem duplicada
+  <img src="./Capturas/Evidencia456-1.png">
+  <img src="./Capturas/Evidencia456-2.png">
+  <img src="./Capturas/Evidencia456-3.png">
+
+### Logs da mesma operação consultados de forma centralizada
+  <img src="./Capturas/Evidencia8.png">
+
+### Trace correspondente disponível no Zipkin
+  <img src="./Capturas/Evidencia9.png">
