@@ -285,3 +285,56 @@ A especificação representa o contrato de comunicação entre os microsserviço
   ```
 
 ---
+
+## Exercício 6 – Logs da aplicação
+
+### Objetivo
+Todos os serviços devem produzir logs suficientes para acompanhar o processamento das operações.  
+Os logs devem conter informações de contexto como:
+- nome do serviço  
+- identificador do contrato (`contratoId`)  
+- identificador do evento (`eventId`)  
+- identificador de correlação (`correlationId`)  
+- início e conclusão do processamento  
+- falhas  
+- mensagens recebidas e publicadas  
+
+Informações sensíveis não devem ser registradas.
+
+### Implementação
+- Cada microsserviço utiliza **SLF4J + Logback**.  
+- O padrão de log foi configurado para incluir os valores do **MDC (Mapped Diagnostic Context)**.  
+- Nos pontos de entrada (controllers e consumidores Kafka), o `correlationId` é colocado no MDC.  
+- Nos pontos de saída (application services e produtores Kafka), `contratoId` e `eventId` também são adicionados.  
+- Ao final de cada operação, o MDC é limpo com `MDC.clear()`.
+
+Exemplo de log:
+```
+2026-10-12 20:47:27 INFO  contrato-service - contratoId=fd32dca9 eventId=ba04ec7a correlationId=teste-001 contrato.evento.publicacao eventType=ContratoCriado
+```
+
+---
+
+## Exercício 7 – Centralização de logs
+
+### Objetivo
+Os logs produzidos pelos microsserviços devem ser enviados para uma solução centralizada, permitindo pesquisar eventos e operações executadas em serviços diferentes utilizando informações em comum (`contratoId`, `eventId`, `correlationId`).
+
+### Implementação
+- Infraestrutura adicionada ao `docker-compose.yml`:  
+  - **Grafana Loki** para armazenamento e indexação dos logs.  
+  - **Promtail** para coleta dos logs dos containers Docker.  
+  - **Grafana** para consulta e visualização.  
+- Configuração do Promtail (`promtail-config.yml`) aponta para `/var/lib/docker/containers/*/*.log`.  
+- Cada log enviado pelos serviços já contém os identificadores necessários para correlação.
+
+### Consulta
+No Grafana Explore, é possível pesquisar por qualquer identificador:
+```
+{job="docker-logs"} |= "contratoId=fd32dca9"
+```
+
+Isso retorna todos os logs relacionados ao contrato, vindos de diferentes serviços.
+
+---
+
